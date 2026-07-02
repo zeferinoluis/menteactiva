@@ -257,6 +257,9 @@ button, select, input{ font-family: inherit; }
   font-size:14.5px; color:var(--tinta-suave); line-height:1.6; margin:0 0 22px;
 }
 .modal-acoes{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.modal-acoes-col{ flex-direction:column; align-items:stretch; }
+.modal-acoes-col .btn{ width:100%; justify-content:center; }
+.btn-texto{ background:transparent; border:none; box-shadow:none; color:var(--texto-suave,#8a7d68); }
 .modal.modal-perigo h3{ color: var(--terra); }
 
 /* ======================= FOOTER ======================= */
@@ -468,6 +471,22 @@ button, select, input{ font-family: inherit; }
     <div class="modal-acoes">
       <button class="btn" id="btnFecharConclusao">Fechar</button>
       <button class="btn btn-primario" id="btnProximoConclusao">Próximo desafio →</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fundo" id="modalConclusaoCruzadas">
+  <div class="modal">
+    <div class="selo-grande">✏️</div>
+    <h3 class="f-display">Puzzle completo!</h3>
+    <p id="textoConclusaoCX">Concluiu o puzzle.</p>
+    <div class="modal-acoes modal-acoes-col">
+      <button class="btn btn-primario" id="btnCxMesmoTema">🔁 Novo puzzle, mesmo tema</button>
+      <button class="btn" id="btnCxOutroTema">🎲 Experimentar outro tema</button>
+      <button class="btn" id="btnCxSubirNivel">⬆️ Mudar de nível</button>
+      <button class="btn" id="btnCxTrivia">❓ Ir para o Trivia</button>
+      <button class="btn" id="btnCxLogica">🧩 Ir para os Puzzles Lógicos</button>
+      <button class="btn btn-texto" id="btnCxFechar">Fechar</button>
     </div>
   </div>
 </div>
@@ -1098,12 +1117,38 @@ const CruzadasUI = (function(){
     bloquearInputs();
     
     const m = Math.floor(segundos/60), s = segundos%60;
-    mostrarModalConclusao({
-      selo: '✏️', titulo: 'Puzzle completo!',
-      texto: `${cur.temaNome} · Nível ${CX_NIVEIS[cur.nivel]} · ${cur.words.length} palavras em ${m}m ${s}s.`,
-      aoProximo: () => carregarPuzzle(cur.temaIdx, cur.nivel, true)
-    });
+    mostrarModalConclusaoCruzadas(`${cur.temaNome} · Nível ${CX_NIVEIS[cur.nivel]} · ${cur.words.length} palavras em ${m}m ${s}s.`);
     guardarEstado();
+  }
+
+  function mostrarModalConclusaoCruzadas(texto){
+    const modal = document.getElementById('modalConclusaoCruzadas');
+    document.getElementById('textoConclusaoCX').textContent = texto;
+
+    const proximoTemaIdx = (cur.temaIdx + 1) % CX_TEMAS.length;
+    const ordemNiveis = ['facil','medio','dificil'];
+    const proximoNivel = ordemNiveis[(ordemNiveis.indexOf(cur.nivel) + 1) % ordemNiveis.length];
+
+    document.getElementById('btnCxOutroTema').textContent = `🎲 Experimentar "${CX_TEMAS[proximoTemaIdx].nome}"`;
+    document.getElementById('btnCxSubirNivel').textContent = `⬆️ Tentar nível ${CX_NIVEIS[proximoNivel]}`;
+
+    const fechar = () => modal.classList.remove('aberto');
+    const acoes = {
+      btnCxMesmoTema: () => { fechar(); carregarPuzzle(cur.temaIdx, cur.nivel, true); },
+      btnCxOutroTema: () => { fechar(); carregarPuzzle(proximoTemaIdx, cur.nivel, true); },
+      btnCxSubirNivel: () => { fechar(); carregarPuzzle(cur.temaIdx, proximoNivel, true); },
+      btnCxTrivia: () => { fechar(); abrirModulo('trivia'); },
+      btnCxLogica: () => { fechar(); abrirModulo('logica'); },
+      btnCxFechar: () => { fechar(); }
+    };
+    Object.keys(acoes).forEach(id => {
+      const el = document.getElementById(id);
+      const novo = el.cloneNode(true);
+      el.parentNode.replaceChild(novo, el);
+      novo.addEventListener('click', acoes[id]);
+    });
+
+    modal.classList.add('aberto');
   }
 
   function verificar(){
